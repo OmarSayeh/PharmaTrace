@@ -1,0 +1,16 @@
+cat > .gitignore << 'EOF'
+# Raw FAERS data files (too large)
+*.txt
+data/*.txt
+
+# Compiled binary
+rxpath
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Mac system files
+.DS_Store
+data/.DS_Store
+EOF
