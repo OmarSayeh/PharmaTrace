@@ -27,4 +27,7 @@ public:
 
     // Print graph statistics
     void printStats() const;
+
+    // Dijkstra's algorithm to find shortest path and distance between two drugs
+    pair<double, vector<string>> dijkstraPath(const string& start, const string& end);
 };

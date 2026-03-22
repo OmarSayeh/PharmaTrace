@@ -3,6 +3,8 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <queue>
+#include <functional>
 using namespace std;
 
 void Graph::loadFromCSV(const string& filepath) {
@@ -70,4 +72,63 @@ void Graph::printStats() const {
     }
     cout << "  Most connected drug:  " << mostConnected
         << " (" << maxDegree << " connections)" << endl;
+}
+
+// Dijkstra's algorithm to find shortest path and distance between two drugs
+pair<double, vector<string>> Graph::dijkstraPath(const string& start, const string& end){
+    unordered_map<string, double> dist;
+    unordered_map<string, string> parent;
+
+    // Initialize distances to infinity 
+    for (auto& [node, _] : adjList) {
+        dist[node] = numeric_limits<double>::infinity();        
+    }
+
+    // Min-heap priority queue to explore nodes by shortest distance
+    priority_queue<pair<double, string>, vector<pair<double, string>>, greater<>> pq;
+
+    // Push the start node with distance 0 into the priority queue
+    dist[start] = 0.0;
+    pq.push({0.0, start});
+
+    // Main loop of Dijkstra's algorithm, loop until the priority queue is empty
+    while(!pq.empty()){
+        // u is current node we are looking at, currentDist is the distance to u from start
+        auto [currentDist, u] = pq.top();
+        pq.pop();
+
+        if(currentDist > dist[u]) continue; // Skip if we have already found a shorter path to u
+        if(u == end) break; // Stop if we reached the end node
+
+        // Explore neighbors of u, v is the neighbor and weight is the edge weight from u to v
+        for(auto& [v, weight] : adjList[u]){
+            // If shorter path to v through u is found, update distance and parent
+            if(dist[u] + weight < dist[v]){
+                dist[v] = dist[u] + weight;
+                parent[v] = u; 
+                pq.push({dist[v], v}); // Push the updated distance for v into the priority queue to be looked at later
+            }
+        }
+    }
+
+    // Return infinity and empty path if end node is unreachable
+    if(dist[end] == numeric_limits<double>::infinity()){
+        return {dist[end], {}};
+    }
+
+    // Reconstruct the path from end to start using the parent map
+    vector<string> path;
+    string curr = end;
+    while(curr != start){
+        path.push_back(curr);
+        curr = parent[curr];
+    }
+    path.push_back(start);
+
+    // Reverse the path to get it from start to end
+    reverse(path.begin(), path.end()); 
+
+    // Return the path from start to end and the total distance of that path
+    return {dist[end], path};
+
 }
