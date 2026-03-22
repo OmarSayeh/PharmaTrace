@@ -10,6 +10,14 @@ struct Edge {
     double weight;
 };
 
+// Output of Dijkstra's algorithm, includes distance, path, nodes visited, and duration
+struct DijkstraResult {
+    double distance;
+    vector<string> path;
+    int nodesVisited;
+    long long durationMs;
+};
+
 class Graph {
 public:
     // adjacency list: drug name → list of (neighbor, weight)
@@ -29,5 +37,7 @@ public:
     void printStats() const;
 
     // Dijkstra's algorithm to find shortest path and distance between two drugs
-    pair<double, vector<string>> dijkstraPath(const string& start, const string& end);
+    DijkstraResult dijkstraPath(const string& start, const string& end);
+    
+
 };

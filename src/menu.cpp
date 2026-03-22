@@ -62,10 +62,26 @@ void Menu::findPath() {
     cout << "\nRunning Dijkstra's Algorithm..." << endl;
     // ── TODO : replace stub with real Dijkstra call ──────────────────
     // DijkstraResult d = dijkstra(graph, drugA, drugB);
-    cout << "  Path:          " << drugA << " → " << drugB        << endl;
-    cout << "  Risk Score:    [stub]"                              << endl;
-    cout << "  Nodes Visited: [stub]"                              << endl;
-    cout << "  Runtime:       [stub] ms"                           << endl;
+    auto result = graph.dijkstraPath(drugA, drugB);
+    if(result.path.empty()){
+        cout<<"No path found between "<<drugA<<" and "<<drugB<<"."<<endl;
+    }else{
+        // Print path
+        cout<<"  Path: ";
+        for(size_t i=0; i<result.path.size(); i++){
+            cout<<result.path[i];
+            if(i != result.path.size()-1) cout<<" → ";
+        }
+        cout<<endl;
+        // Print risk score
+        cout<<"  Risk Score: "<<result.distance<<endl;
+        // Print nodes visited
+        cout<<"  Nodes Visited: "<<result.nodesVisited<<endl;
+        // Print runtime
+        cout<<"  Runtime: "<<result.durationMs<<" ms"<<endl;
+
+    }
+    
     // ───────────────────────────────────────────────────────────────────────
 
     cout << "\nRunning Bellman-Ford Algorithm..." << endl;

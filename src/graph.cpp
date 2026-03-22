@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <queue>
 #include <functional>
+#include <chrono>
 using namespace std;
 
 void Graph::loadFromCSV(const string& filepath) {
@@ -74,10 +75,18 @@ void Graph::printStats() const {
         << " (" << maxDegree << " connections)" << endl;
 }
 
+
+
+
+
+
+
 // Dijkstra's algorithm to find shortest path and distance between two drugs
-pair<double, vector<string>> Graph::dijkstraPath(const string& start, const string& end){
+ DijkstraResult Graph::dijkstraPath(const string& start, const string& end){
+    auto startTime =chrono::high_resolution_clock::now();
     unordered_map<string, double> dist;
     unordered_map<string, string> parent;
+    int nodesVisitedDijkstra = 0;
 
     // Initialize distances to infinity 
     for (auto& [node, _] : adjList) {
@@ -85,7 +94,11 @@ pair<double, vector<string>> Graph::dijkstraPath(const string& start, const stri
     }
 
     // Min-heap priority queue to explore nodes by shortest distance
-    priority_queue<pair<double, string>, vector<pair<double, string>>, greater<>> pq;
+    priority_queue<
+      pair<double, string>,
+      vector<pair<double, string>>,
+      greater<pair<double, string>>> 
+      pq;
 
     // Push the start node with distance 0 into the priority queue
     dist[start] = 0.0;
@@ -96,6 +109,8 @@ pair<double, vector<string>> Graph::dijkstraPath(const string& start, const stri
         // u is current node we are looking at, currentDist is the distance to u from start
         auto [currentDist, u] = pq.top();
         pq.pop();
+
+        nodesVisitedDijkstra++;
 
         if(currentDist > dist[u]) continue; // Skip if we have already found a shorter path to u
         if(u == end) break; // Stop if we reached the end node
@@ -113,7 +128,9 @@ pair<double, vector<string>> Graph::dijkstraPath(const string& start, const stri
 
     // Return infinity and empty path if end node is unreachable
     if(dist[end] == numeric_limits<double>::infinity()){
-        return {dist[end], {}};
+      auto endTime = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
+        return {dist[end], {}, nodesVisitedDijkstra, duration};
     }
 
     // Reconstruct the path from end to start using the parent map
@@ -128,7 +145,10 @@ pair<double, vector<string>> Graph::dijkstraPath(const string& start, const stri
     // Reverse the path to get it from start to end
     reverse(path.begin(), path.end()); 
 
+
+    auto endTime = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
     // Return the path from start to end and the total distance of that path
-    return {dist[end], path};
+    return {dist[end], path, nodesVisitedDijkstra, duration};
 
 }
