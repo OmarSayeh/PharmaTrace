@@ -152,3 +152,77 @@ void Graph::printStats() const {
     return {dist[end], path, nodesVisitedDijkstra, duration};
 
 }
+DijkstraResult Graph::bellmanFordPath(const string& start, const string& end) {
+    auto startTime = chrono::high_resolution_clock::now();
+
+    unordered_map<string, double> dist;
+    unordered_map<string, string> parent;
+    int nodesVisitedBellmanFord = 0;
+    for (auto& [node, _] : adjList) {
+        dist[node] = numeric_limits<double>::infinity();
+    }
+
+    dist[start] = 0.0;
+
+    for (int i = 0; i < nodeCount - 1; i++) {
+        bool updated = false;
+
+        for (auto& [u, neighbors] : adjList) {
+            if (dist[u] == numeric_limits<double>::infinity()) continue;
+
+            for (auto& edge : neighbors) {
+                string v = edge.neighbor;
+                double weight = edge.weight;
+                nodesVisitedBellmanFord++;
+
+                if (dist[u] + weight < dist[v]) {
+                    dist[v] = dist[u] + weight;
+                    parent[v] = u;
+                    updated = true;
+                }
+            }
+        }
+
+        //stop if no changes were made in this pass
+        if (!updated) break;
+    }
+
+    //negative cycle check
+    for (auto& [u, neighbors] : adjList) {
+        if (dist[u] == numeric_limits<double>::infinity()) continue;
+
+        for (auto& edge : neighbors) {
+            string v = edge.neighbor;
+            double weight = edge.weight;
+
+            if (dist[u] + weight < dist[v]) {
+                auto endTime = chrono::high_resolution_clock::now();
+                auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
+                return {numeric_limits<double>::infinity(), {}, nodesVisitedBellmanFord, duration};
+            }
+        }
+    }
+
+    // Return infinity and empty path if end node is unreachable
+    if (dist[end] == numeric_limits<double>::infinity()) {
+        auto endTime = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
+        return {dist[end], {}, nodesVisitedBellmanFord, duration};
+    }
+
+    // Reconstruct path from end to start
+    vector<string> path;
+    string curr = end;
+    while (curr != start) {
+        path.push_back(curr);
+        curr = parent[curr];
+    }
+    path.push_back(start);
+
+    reverse(path.begin(), path.end());
+
+    auto endTime = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
+
+    return {dist[end], path, nodesVisitedBellmanFord, duration};
+}
