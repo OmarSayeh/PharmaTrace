@@ -82,17 +82,21 @@ void Menu::findPath() {
 
     }
     
-    // ───────────────────────────────────────────────────────────────────────
+    auto bfResult = graph.bellmanFordPath(drugA, drugB);
 
-    cout << "\nRunning Bellman-Ford Algorithm..." << endl;
-    // ── TODO : replace stub with real Bellman-Ford call ──────────────
-    // BellmanFordResult b = bellmanFord(graph, drugA, drugB);
-    cout << "  Path:          " << drugA << " → " << drugB        << endl;
-    cout << "  Risk Score:    [stub]"                              << endl;
-    cout << "  Nodes Visited: [stub]"                              << endl;
-    cout << "  Runtime:       [stub] ms"                           << endl;
-    // ───────────────────────────────────────────────────────────────────────
-
+    if (bfResult.path.empty()) {
+        cout << "No path found between " << drugA << " and " << drugB << "." << endl;
+    } else {
+        cout << "  Path: ";
+        for (size_t i = 0; i < bfResult.path.size(); i++) {
+            cout << bfResult.path[i];
+            if (i != bfResult.path.size() - 1) cout << " → ";
+        }
+        cout << endl;
+        cout << "  Risk Score: " << bfResult.distance << endl;
+        cout << "  Nodes Visited: " << bfResult.nodesVisited << endl;
+        cout << "  Runtime: " << bfResult.durationMs << " ms" << endl;
+    }
     waitForEnter();
 }
 
