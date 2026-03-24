@@ -38,6 +38,6 @@ public:
 
     // Dijkstra's algorithm to find shortest path and distance between two drugs
     DijkstraResult dijkstraPath(const string& start, const string& end);
-    
+    DijkstraResult bellmanFordPath(const string& start, const string& end);
 
 };
