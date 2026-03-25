@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
+#include <random>
+#include <chrono>
 using namespace std;
 
 // Helpers 
@@ -182,15 +184,65 @@ void Menu::searchDrug() {
 // Option 4: Benchmark 
 
 void Menu::runBenchmark() {
+    void Menu::runBenchmark() {
     cout << "\n--- Algorithm Benchmark ---\n" << endl;
-    cout << "Runs 1000 random drug pair queries and compares" << endl;
-    cout << "Dijkstra vs Bellman-Ford performance.\n"         << endl;
+    cout << "Running 100 random drug pair queries...\n" << endl;
 
-    // ── TODO : plug in real benchmark once algorithms are done
-    cout << "  [stub] Benchmark not yet implemented."         << endl;
-    cout << "  Come back once both algorithms are done."      << endl;
-    // ────────────────────────────────────────────────────────────────────────
+    if (graph.adjList.empty()) {
+        cout << "Graph not loaded.\n";
+        waitForEnter();
+        return;
+    }
 
+    vector<string> drugs;
+    for (auto& [drug, _] : graph.adjList) {
+        drugs.push_back(drug);
+    }
+
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(0, drugs.size() - 1);
+    long long totalDijkstraTime = 0;
+    long long totalBellmanTime = 0;
+    int totalDijkstraVisited = 0;
+    int totalBellmanVisited = 0;
+    int validTests = 0;
+    int TESTS = 100;
+        
+    for (int i = 0; i < TESTS; i++) {
+        string a = drugs[dis(gen)];
+        string b = drugs[dis(gen)];
+
+        if (a == b) continue;
+
+        auto d = graph.dijkstraPath(a, b);
+        auto bf = graph.bellmanFordPath(a, b);
+
+        if (d.path.empty() || bf.path.empty()) continue;
+
+        totalDijkstraTime += d.durationMs;
+        totalBellmanTime += bf.durationMs;
+        totalDijkstraVisited += d.nodesVisited;
+        totalBellmanVisited += bf.nodesVisited;
+
+        validTests++;
+    }
+
+    if (validTests == 0) {
+        cout << "No valid paths found for benchmark.\n";
+        waitForEnter();
+        return;
+    }
+
+    cout << "Benchmark Results (" << validTests << " valid tests)\n" << endl;
+    cout << "Dijkstra Average Runtime: "
+         << (double)totalDijkstraTime / validTests << " ms\n";
+    cout << "Bellman-Ford Average Runtime: "
+         << (double)totalBellmanTime / validTests << " ms\n";
+    cout << "Dijkstra Avg Nodes Visited: "
+         << totalDijkstraVisited / validTests << endl;
+    cout << "Bellman-Ford Avg Nodes Visited: "
+         << totalBellmanVisited / validTests << endl;
     waitForEnter();
 }
 
