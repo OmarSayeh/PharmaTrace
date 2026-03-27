@@ -1,37 +1,33 @@
 #pragma once
 #include "graph.h"
+#include "results.h"
 #include <vector>
 #include <unordered_map>
 #include <string>
 using namespace std;
 
-struct Dijkstraresult {
-    bool pathfound = false;
-    double totalrisk = 0.0;
-    int nodesvisited = 0;
-    vector<string> path;
-};
-class Minheap {
+class MinHeap {
 private:
-    struct Heapnode {
+    struct HeapNode {
         string drug;
         double dist;
     };
 
-    vector<Heapnode> heap;
-    unordered_map<string, int> position;
+    vector<HeapNode> heap;
+    unordered_map<string, int> position; // drug → index in heap
 
-    void Heapifyup(int index);
-    void Heapifydown(int index);
-    void Swapnodes(int i, int j);
+    void heapifyUp(int index);
+    void heapifyDown(int index);
+    void swapNodes(int i, int j);
 
 public:
     bool empty() const;
     bool contains(const string& drug) const;
     void push(const string& drug, double dist);
-    HeapNode extractmin();
-    void decreaseKey(const string& drug, double newdist);
+    HeapNode extractMin();
+    void decreaseKey(const string& drug, double newDist);
 };
 
-Dijkstraresult dijkstra(const Graph& graph, const string& start, const string& target);
-string formatPath(const vector<string>& path);
+AlgorithmResult dijkstra(const Graph& graph,
+                         const string& start,
+                         const string& target);
