@@ -1,14 +1,11 @@
 #pragma once
 #include "graph.h"
 #include <string>
-using namespace std;
 
 class Menu {
 public:
     Graph& graph;
-
     Menu(Graph& g) : graph(g) {}
-
     // Main entry point
     void run();
 
@@ -18,7 +15,7 @@ private:
     void showInteractions();
     void searchDrug();
     void runBenchmark();
-
+    void printRiskAdvice(double riskScore);
     // Helpers
     string getInput(const string& prompt);
     string normalize(const string& input);

@@ -1,4 +1,6 @@
 #include "menu.h"
+#include "dijkstra.h"
+#include "bellmanford.h"
 #include <iostream>
 #include <algorithm>
 #include <cctype>
@@ -7,7 +9,7 @@
 #include <chrono>
 using namespace std;
 
-// Helpers 
+//  Helpers 
 
 string Menu::getInput(const string& prompt) {
     string input;
@@ -16,12 +18,9 @@ string Menu::getInput(const string& prompt) {
     return input;
 }
 
-// Convert user input to uppercase to match graph node format
 string Menu::normalize(const string& input) {
     string result = input;
-    transform(result.begin(), result.end(),
-                   result.begin(), ::toupper);
-    // trim leading/trailing spaces
+    transform(result.begin(), result.end(), result.begin(), ::toupper);
     size_t start = result.find_first_not_of(" ");
     size_t end   = result.find_last_not_of(" ");
     if (start == string::npos) return "";
@@ -29,14 +28,43 @@ string Menu::normalize(const string& input) {
 }
 
 void Menu::printHeader() {
-    cout << "\n======================================" << endl;
-    cout << "   PharmaTrace - Drug Interaction Network  " << endl;
-    cout << "======================================" << endl;
+    cout << "\n========================================" << endl;
+    cout << "  PharmaTrace - Drug Interaction Network " << endl;
+    cout << "========================================" << endl;
 }
 
 void Menu::waitForEnter() {
     cout << "\nPress Enter to continue...";
     cin.ignore();
+}
+void Menu::printRiskAdvice(double riskScore) {
+    cout << "\n  ──────────────────────────────────────────" << endl;
+
+    if (riskScore >= 0.75) {
+        cout << "  ⛔ AVOID: High interaction risk"           << endl;
+        cout << "     These drugs have a strong history of"  << endl;
+        cout << "     dangerous co-adverse events. Do NOT"   << endl;
+        cout << "     take together without direct physician" << endl;
+        cout << "     supervision."                          << endl;
+    } else if (riskScore >= 0.45) {
+        cout << "  ⚠  CAUTION: Moderate interaction risk"    << endl;
+        cout << "     Adverse events have been reported for"  << endl;
+        cout << "     this combination. Monitor closely and"  << endl;
+        cout << "     inform your doctor of all medications." << endl;
+    } else {
+        cout << "  ✅ LOW RISK: Minimal interaction risk"     << endl;
+        cout << "     Few adverse events reported for this"   << endl;
+        cout << "     combination. Still inform your doctor"  << endl;
+        cout << "     of all medications you are taking."     << endl;
+    }
+
+    cout << "  ──────────────────────────────────────────" << endl;
+    cout << "  ⚕  DISCLAIMER: This tool is for"            << endl;
+    cout << "     informational purposes only. Always"      << endl;
+    cout << "     consult a licensed physician or"          << endl;
+    cout << "     pharmacist before making any"             << endl;
+    cout << "     medication decisions."                    << endl;
+    cout << "  ──────────────────────────────────────────" << endl;
 }
 
 //  Option 1: Find path between two drugs 
@@ -47,7 +75,6 @@ void Menu::findPath() {
     string drugA = normalize(getInput("Enter Drug 1: "));
     string drugB = normalize(getInput("Enter Drug 2: "));
 
-    // Validate both drugs exist in graph
     if (!graph.hasNode(drugA)) {
         cout << "\n⚠ '" << drugA << "' not found in database." << endl;
         cout << "  Tip: use option 3 to search for a drug name." << endl;
@@ -61,48 +88,66 @@ void Menu::findPath() {
         return;
     }
 
+    // Dijkstra 
     cout << "\nRunning Dijkstra's Algorithm..." << endl;
-    // ── TODO : replace stub with real Dijkstra call ──────────────────
-    // DijkstraResult d = dijkstra(graph, drugA, drugB);
-    auto result = graph.dijkstraPath(drugA, drugB);
-    if(result.path.empty()){
-        cout<<"No path found between "<<drugA<<" and "<<drugB<<"."<<endl;
-    }else{
-        // Print path
-        cout<<"  Path: ";
-        for(size_t i=0; i<result.path.size(); i++){
-            cout<<result.path[i];
-            if(i != result.path.size()-1) cout<<" → ";
-        }
-        cout<<endl;
-        // Print risk score
-        cout<<"  Risk Score: "<<result.distance<<endl;
-        // Print nodes visited
-        cout<<"  Nodes Visited: "<<result.nodesVisited<<endl;
-        // Print runtime
-        cout<<"  Runtime: "<<result.durationMs<<" ms"<<endl;
+    AlgorithmResult d = dijkstra(graph, drugA, drugB);
 
-    }
-    
-    auto bfResult = graph.bellmanFordPath(drugA, drugB);
-
-    if (bfResult.path.empty()) {
-        cout << "No path found between " << drugA << " and " << drugB << "." << endl;
+    if (d.path.empty()) {
+        cout << "  No path found between " << drugA << " and " << drugB << "." << endl;
     } else {
-        cout << "  Path: ";
-        for (size_t i = 0; i < bfResult.path.size(); i++) {
-            cout << bfResult.path[i];
-            if (i != bfResult.path.size() - 1) cout << " → ";
+        cout << "  Path:          ";
+        for (size_t i = 0; i < d.path.size(); i++) {
+            cout << d.path[i];
+            if (i != d.path.size() - 1) cout << " → ";
         }
         cout << endl;
-        cout << "  Risk Score: " << bfResult.distance << endl;
-        cout << "  Nodes Visited: " << bfResult.nodesVisited << endl;
-        cout << "  Runtime: " << bfResult.durationMs << " ms" << endl;
+        cout << "  Risk Score:    " << fixed << setprecision(4) << d.pathWeight  << endl;
+        cout << "  Nodes Visited: " << d.nodesVisited                            << endl;
+        cout << "  Runtime:       " << d.runtimeMs << " ms"                      << endl;
     }
+
+    //  Bellman-Ford 
+    cout << "\nRunning Bellman-Ford Algorithm..." << endl;
+    AlgorithmResult bf = bellmanFord(graph, drugA, drugB);
+
+    if (bf.hasNegativeCycle) {
+        cout << "  ⚠ Negative cycle detected in graph." << endl;
+    } else if (bf.path.empty()) {
+        cout << "  No path found between " << drugA << " and " << drugB << "." << endl;
+    } else {
+        cout << "  Path:          ";
+        for (size_t i = 0; i < bf.path.size(); i++) {
+            cout << bf.path[i];
+            if (i != bf.path.size() - 1) cout << " → ";
+        }
+        cout << endl;
+        cout << "  Risk Score:    " << fixed << setprecision(4) << bf.pathWeight << endl;
+        cout << "  Nodes Visited: " << bf.nodesVisited                           << endl;
+        cout << "  Runtime:       " << bf.runtimeMs << " ms"                     << endl;
+    }
+
+    // Comparison 
+    if (!d.path.empty() && !bf.path.empty()) {
+        cout << "\n--- Comparison ---" << endl;
+        cout << "  Dijkstra was "
+             << (d.runtimeMs <= bf.runtimeMs ? "faster" : "slower")
+             << " by " << abs(d.runtimeMs - bf.runtimeMs) << " ms" << endl;
+        cout << "  Dijkstra visited "
+             << abs(d.nodesVisited - bf.nodesVisited)
+             << (d.nodesVisited <= bf.nodesVisited ? " fewer" : " more")
+             << " nodes than Bellman-Ford" << endl;
+    }
+
+     // ── Risk Advice ───────────────────────────────────────────────────────────
+    if (!d.path.empty()) {
+        printRiskAdvice(d.pathWeight);
+    }
+
     waitForEnter();
 }
 
-// Option 2: Show all interactions for a drug 
+
+//Option 2: Show all interactions for a drug 
 
 void Menu::showInteractions() {
     cout << "\n--- Show Drug Interactions ---\n" << endl;
@@ -118,29 +163,24 @@ void Menu::showInteractions() {
 
     auto& neighbors = graph.adjList[drug];
 
-    // Sort by weight descending (highest risk first)
     vector<Edge> sorted = neighbors;
     sort(sorted.begin(), sorted.end(),
-              [](const Edge& a, const Edge& b) {
-                  return a.weight > b.weight;
-              });
+         [](const Edge& a, const Edge& b) {
+             return a.weight > b.weight;
+         });
 
     cout << "\nTop 10 interactions for " << drug
-              << " (" << neighbors.size() << " total):\n" << endl;
+         << " (" << neighbors.size() << " total):\n" << endl;
 
-    cout << "  " << left
-              << setw(35) << "Drug"
-              << setw(10) << "Risk Score"
-              << endl;
+    cout << "  " << left << setw(35) << "Drug"
+                         << setw(10) << "Risk Score" << endl;
     cout << "  " << string(45, '-') << endl;
 
     int count = 0;
     for (auto& edge : sorted) {
         cout << "  " << left
-                  << setw(35) << edge.neighbor
-                  << setw(10) << fixed
-                  << setprecision(4) << edge.weight
-                  << endl;
+             << setw(35) << edge.neighbor
+             << setw(10) << fixed << setprecision(4) << edge.weight << endl;
         if (++count == 10) break;
     }
 
@@ -162,17 +202,16 @@ void Menu::searchDrug() {
     }
 
     if (matches.empty()) {
-        cout << "\n No drugs found matching '" << query << "'" << endl;
+        cout << "\n  No drugs found matching '" << query << "'" << endl;
     } else {
         sort(matches.begin(), matches.end());
-        cout << "\n Found " << matches.size()
-                  << " match(es) for '" << query << "':\n" << endl;
+        cout << "\n  Found " << matches.size()
+             << " match(es) for '" << query << "':\n" << endl;
         int count = 0;
         for (auto& match : matches) {
             cout << "  " << match << endl;
             if (++count == 20) {
-                cout << "  ... and " << matches.size() - 20
-                          << " more" << endl;
+                cout << "  ... and " << matches.size() - 20 << " more" << endl;
                 break;
             }
         }
@@ -181,68 +220,71 @@ void Menu::searchDrug() {
     waitForEnter();
 }
 
-// Option 4: Benchmark 
+//  Option 4: Benchmark 
 
 void Menu::runBenchmark() {
-    void Menu::runBenchmark() {
     cout << "\n--- Algorithm Benchmark ---\n" << endl;
     cout << "Running 100 random drug pair queries...\n" << endl;
 
     if (graph.adjList.empty()) {
-        cout << "Graph not loaded.\n";
+        cout << "  Graph not loaded." << endl;
         waitForEnter();
         return;
     }
 
     vector<string> drugs;
-    for (auto& [drug, _] : graph.adjList) {
+    for (auto& [drug, _] : graph.adjList)
         drugs.push_back(drug);
-    }
 
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<> dis(0, drugs.size() - 1);
-    long long totalDijkstraTime = 0;
-    long long totalBellmanTime = 0;
-    int totalDijkstraVisited = 0;
-    int totalBellmanVisited = 0;
-    int validTests = 0;
-    int TESTS = 100;
-        
+
+    long long totalDijkstraTime   = 0;
+    long long totalBellmanTime    = 0;
+    int       totalDijkstraNodes  = 0;
+    int       totalBellmanNodes   = 0;
+    int       validTests          = 0;
+    const int TESTS               = 100;
+
     for (int i = 0; i < TESTS; i++) {
         string a = drugs[dis(gen)];
         string b = drugs[dis(gen)];
-
         if (a == b) continue;
 
-        auto d = graph.dijkstraPath(a, b);
-        auto bf = graph.bellmanFordPath(a, b);
+        AlgorithmResult d  = dijkstra(graph, a, b);
+        AlgorithmResult bf = bellmanFord(graph, a, b);
 
         if (d.path.empty() || bf.path.empty()) continue;
 
-        totalDijkstraTime += d.durationMs;
-        totalBellmanTime += bf.durationMs;
-        totalDijkstraVisited += d.nodesVisited;
-        totalBellmanVisited += bf.nodesVisited;
-
+        totalDijkstraTime  += d.runtimeMs;
+        totalBellmanTime   += bf.runtimeMs;
+        totalDijkstraNodes += d.nodesVisited;
+        totalBellmanNodes  += bf.nodesVisited;
         validTests++;
     }
 
     if (validTests == 0) {
-        cout << "No valid paths found for benchmark.\n";
+        cout << "  No valid paths found for benchmark." << endl;
         waitForEnter();
         return;
     }
 
-    cout << "Benchmark Results (" << validTests << " valid tests)\n" << endl;
-    cout << "Dijkstra Average Runtime: "
-         << (double)totalDijkstraTime / validTests << " ms\n";
-    cout << "Bellman-Ford Average Runtime: "
-         << (double)totalBellmanTime / validTests << " ms\n";
-    cout << "Dijkstra Avg Nodes Visited: "
-         << totalDijkstraVisited / validTests << endl;
-    cout << "Bellman-Ford Avg Nodes Visited: "
-         << totalBellmanVisited / validTests << endl;
+    cout << "  Results (" << validTests << " valid tests)\n" << endl;
+    cout << "  " << left << setw(30) << "Metric"
+                         << setw(15) << "Dijkstra"
+                         << setw(15) << "Bellman-Ford" << endl;
+    cout << "  " << string(60, '-') << endl;
+    cout << "  " << left << setw(30) << "Avg Runtime (ms)"
+         << setw(15) << (double)totalDijkstraTime  / validTests
+         << setw(15) << (double)totalBellmanTime   / validTests << endl;
+    cout << "  " << left << setw(30) << "Avg Nodes Visited"
+         << setw(15) << totalDijkstraNodes / validTests
+         << setw(15) << totalBellmanNodes  / validTests << endl;
+
+    string faster = totalDijkstraTime <= totalBellmanTime ? "Dijkstra" : "Bellman-Ford";
+    cout << "\n  ✓ " << faster << " was faster on average." << endl;
+
     waitForEnter();
 }
 
@@ -250,15 +292,15 @@ void Menu::runBenchmark() {
 
 void Menu::run() {
     string choice;
-    
+
     while (true) {
         printHeader();
         cout << "  Loaded: " << graph.nodeCount << " drugs, "
-                  << graph.edgeCount << " interactions\n" << endl;
+             << graph.edgeCount << " interactions\n" << endl;
         cout << "  1. Find interaction path between two drugs"  << endl;
         cout << "  2. Show all interactions for a drug"         << endl;
         cout << "  3. Search for a drug"                        << endl;
-        cout << "  4. Run benchmark (Dijkstra vs Bellman-Ford)" << endl;
+        cout << "  4. Run 5(Dijkstra vs Bellman-Ford)" << endl;
         cout << "  5. Exit\n"                                   << endl;
 
         choice = getInput("  Select option (1-5): ");
@@ -270,9 +312,8 @@ void Menu::run() {
         else if (choice == "5") {
             cout << "\nGoodbye!\n" << endl;
             break;
-        }
-        else {
-            cout << "\n Invalid option. Please enter 1-5." << endl;
+        } else {
+            cout << "\n  Invalid option. Please enter 1-5." << endl;
             waitForEnter();
         }
     }
